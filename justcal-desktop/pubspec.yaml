@@ -1,0 +1,24 @@
+name: justcal
+description: JustCal — Intelligent desktop scheduling assistant
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  file_picker: ^8.0.0
+  desktop_drop: ^0.4.4
+  google_fonts: ^6.2.0
+  path: ^1.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
