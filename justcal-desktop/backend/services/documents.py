@@ -1,5 +1,44 @@
+import os
+from pathlib import Path
+
 import fitz  # PyMuPDF
 from docx import Document as DocxDocument
+
+# Maximum file size: 50 MB
+MAX_FILE_SIZE = 50 * 1024 * 1024
+
+# PDF magic bytes: %PDF
+_PDF_MAGIC = b"%PDF"
+# DOCX is a ZIP archive; ZIP magic bytes
+_ZIP_MAGIC = b"PK\x03\x04"
+
+
+def _validate_file(path: str) -> Path:
+    """Resolve the path and validate size and type."""
+    resolved = Path(path).resolve()
+    if not resolved.is_file():
+        raise ValueError("File does not exist")
+
+    size = resolved.stat().st_size
+    if size > MAX_FILE_SIZE:
+        raise ValueError(f"File too large ({size} bytes). Maximum is {MAX_FILE_SIZE} bytes.")
+    if size == 0:
+        raise ValueError("File is empty")
+
+    lower = str(resolved).lower()
+    with open(resolved, "rb") as f:
+        header = f.read(8)
+
+    if lower.endswith(".pdf"):
+        if not header.startswith(_PDF_MAGIC):
+            raise ValueError("File does not appear to be a valid PDF")
+    elif lower.endswith(".docx"):
+        if not header.startswith(_ZIP_MAGIC):
+            raise ValueError("File does not appear to be a valid DOCX")
+    else:
+        raise ValueError("Unsupported file type. Only PDF and DOCX are supported.")
+
+    return resolved
 
 
 def extract_pdf_text(path: str) -> str:
@@ -15,11 +54,12 @@ def extract_docx_text(path: str) -> str:
 
 
 def extract_text(path: str) -> str:
-    lower = path.lower()
+    resolved = _validate_file(path)
+    lower = str(resolved).lower()
     if lower.endswith(".pdf"):
-        return extract_pdf_text(path)
+        return extract_pdf_text(str(resolved))
     elif lower.endswith(".docx"):
-        return extract_docx_text(path)
+        return extract_docx_text(str(resolved))
     raise ValueError("Unsupported file type. Only PDF and DOCX are supported.")
 
 

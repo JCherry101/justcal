@@ -11,6 +11,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _googleConnected = false;
+  String _googleEmail = '';
   bool _geminiKeySaved = false;
   final _geminiCtl = TextEditingController();
   bool _showKey = false;
@@ -25,22 +26,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final g = await ApiService.getGoogleAuthStatus();
       final k = await ApiService.getGeminiKeyStatus();
-      if (mounted) setState(() { _googleConnected = g; _geminiKeySaved = k; });
+      if (mounted) {
+        setState(() {
+          _googleConnected = g['connected'] as bool? ?? false;
+          _googleEmail = g['email'] as String? ?? '';
+          _geminiKeySaved = k;
+        });
+      }
     } catch (_) {}
   }
 
   Future<void> _connectGoogle() async {
     try {
       await ApiService.startGoogleAuth();
-      // Poll for the status change
-      for (var i = 0; i < 30; i++) {
-        await Future.delayed(const Duration(seconds: 1));
-        final status = await ApiService.getGoogleAuthStatus();
-        if (status) {
-          if (mounted) setState(() => _googleConnected = true);
-          return;
-        }
-      }
+      await _loadStatus();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -51,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _disconnectGoogle() async {
     await ApiService.revokeGoogleAuth();
-    if (mounted) setState(() => _googleConnected = false);
+    if (mounted) setState(() { _googleConnected = false; _googleEmail = ''; });
   }
 
   Future<void> _saveGeminiKey() async {
@@ -85,9 +84,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: 'Google Calendar',
               trailing: _statusPill(_googleConnected),
               child: _googleConnected
-                  ? OutlinedButton(
-                      onPressed: _disconnectGoogle,
-                      child: const Text('Disconnect'))
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_googleEmail.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.account_circle,
+                                    size: 18, color: AppColors.textSecondary),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _googleEmail,
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                        OutlinedButton(
+                            onPressed: _disconnectGoogle,
+                            child: const Text('Disconnect')),
+                      ],
+                    )
                   : ElevatedButton(
                       onPressed: _connectGoogle,
                       child: const Text('Connect Google')),

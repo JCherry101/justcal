@@ -1,8 +1,11 @@
 import json
+import logging
 from datetime import datetime, timezone
 
 import httpx
 import keyring
+
+logger = logging.getLogger("justcal.gemini")
 
 GEMINI_API_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
@@ -54,7 +57,8 @@ async def call_gemini_for_tasks(raw_text: str) -> list[dict]:
         resp = await client.post(url, json=body, headers=headers)
 
     if resp.status_code != 200:
-        raise RuntimeError(f"Gemini API error {resp.status_code}: {resp.text}")
+        logger.error("Gemini API error %d: %s", resp.status_code, resp.text)
+        raise RuntimeError("Gemini API request failed. Check your API key or try again.")
 
     data = resp.json()
     json_text = data["candidates"][0]["content"]["parts"][0]["text"]
@@ -101,7 +105,8 @@ async def rag_chat_completion(
         resp = await client.post(url, json=body, headers=headers)
 
     if resp.status_code != 200:
-        raise RuntimeError(f"Gemini API error {resp.status_code}: {resp.text}")
+        logger.error("Gemini chat error %d: %s", resp.status_code, resp.text)
+        raise RuntimeError("Gemini API request failed. Check your API key or try again.")
 
     data = resp.json()
     return data["candidates"][0]["content"]["parts"][0]["text"]

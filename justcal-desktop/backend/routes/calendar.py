@@ -18,7 +18,8 @@ router = APIRouter()
 
 @router.post("/calendar/sync")
 async def sync_tasks_to_calendars(tasks: list[Task]) -> dict:
-    if not get_google_auth_status():
+    status = get_google_auth_status()
+    if not status["connected"]:
         raise RuntimeError("Google Calendar not connected. Please connect in Settings.")
 
     all_milestones: list[Milestone] = []

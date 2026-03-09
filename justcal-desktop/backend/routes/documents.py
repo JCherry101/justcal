@@ -73,12 +73,9 @@ def get_documents() -> list[Document]:
 @router.delete("/documents/{doc_id}")
 def delete_document(doc_id: str) -> dict:
     conn = db.get_connection()
-    conn.execute(
-        "DELETE FROM embeddings WHERE chunk_rowid IN "
-        "(SELECT rowid FROM chunks WHERE document_id = ?)",
-        (doc_id,),
-    )
-    conn.execute("DELETE FROM chunks WHERE document_id = ?", (doc_id,))
+    # CASCADE deletes embeddings -> chunks automatically via FK
     conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+    # Clear chat history so the LLM no longer remembers the document
+    conn.execute("DELETE FROM chat_history")
     conn.commit()
     return {"ok": True}

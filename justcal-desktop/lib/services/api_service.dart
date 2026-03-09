@@ -46,6 +46,25 @@ class ApiService {
         .toList();
   }
 
+  static Future<void> updateTask(Task task) async {
+    final resp = await _client.put(
+      Uri.parse('$_baseUrl/tasks/${task.id}'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'title': task.title,
+        'deadline': task.deadline,
+        'priority': task.priority,
+        'description': task.description,
+      }),
+    );
+    _check(resp);
+  }
+
+  static Future<void> deleteTask(String taskId) async {
+    final resp = await _client.delete(Uri.parse('$_baseUrl/tasks/$taskId'));
+    _check(resp);
+  }
+
   // ── Documents ──
 
   static Future<List<Task>> ingestDocument(String filePath) async {
@@ -109,6 +128,40 @@ class ApiService {
         .toList();
   }
 
+  static Future<Milestone> createMilestone(Milestone ms) async {
+    final resp = await _client.post(
+      Uri.parse('$_baseUrl/milestones'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'task_id': ms.taskId,
+        'title': ms.title,
+        'due_date': ms.dueDate,
+        'kind': ms.kind,
+      }),
+    );
+    _check(resp);
+    return Milestone.fromJson(jsonDecode(resp.body));
+  }
+
+  static Future<void> updateMilestone(Milestone ms) async {
+    final resp = await _client.put(
+      Uri.parse('$_baseUrl/milestones/${ms.id}'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'title': ms.title,
+        'due_date': ms.dueDate,
+        'kind': ms.kind,
+      }),
+    );
+    _check(resp);
+  }
+
+  static Future<void> deleteMilestone(String milestoneId) async {
+    final resp =
+        await _client.delete(Uri.parse('$_baseUrl/milestones/$milestoneId'));
+    _check(resp);
+  }
+
   static Future<String> syncTasksToCalendars(List<Task> tasks) async {
     final resp = await _client.post(
       Uri.parse('$_baseUrl/calendar/sync'),
@@ -123,15 +176,16 @@ class ApiService {
 
   static Future<void> startGoogleAuth() async {
     final resp =
-        await _client.post(Uri.parse('$_baseUrl/auth/google/start'));
+        await _client.post(Uri.parse('$_baseUrl/auth/google/start'))
+            .timeout(const Duration(minutes: 6));
     _check(resp);
   }
 
-  static Future<bool> getGoogleAuthStatus() async {
+  static Future<Map<String, dynamic>> getGoogleAuthStatus() async {
     final resp =
         await _client.get(Uri.parse('$_baseUrl/auth/google/status'));
     _check(resp);
-    return (jsonDecode(resp.body) as Map)['connected'] as bool? ?? false;
+    return jsonDecode(resp.body) as Map<String, dynamic>;
   }
 
   static Future<void> revokeGoogleAuth() async {

@@ -32,6 +32,23 @@ class Task {
         'description': description,
         'synced': synced,
       };
+
+  Task copyWith({
+    String? id,
+    String? title,
+    String? deadline,
+    String? priority,
+    String? description,
+    bool? synced,
+  }) =>
+      Task(
+        id: id ?? this.id,
+        title: title ?? this.title,
+        deadline: deadline ?? this.deadline,
+        priority: priority ?? this.priority,
+        description: description ?? this.description,
+        synced: synced ?? this.synced,
+      );
 }
 
 class Milestone {
@@ -55,6 +72,29 @@ class Milestone {
         title: j['title'] as String,
         dueDate: j['due_date'] as String,
         kind: j['kind'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'task_id': taskId,
+        'title': title,
+        'due_date': dueDate,
+        'kind': kind,
+      };
+
+  Milestone copyWith({
+    String? id,
+    String? taskId,
+    String? title,
+    String? dueDate,
+    String? kind,
+  }) =>
+      Milestone(
+        id: id ?? this.id,
+        taskId: taskId ?? this.taskId,
+        title: title ?? this.title,
+        dueDate: dueDate ?? this.dueDate,
+        kind: kind ?? this.kind,
       );
 }
 

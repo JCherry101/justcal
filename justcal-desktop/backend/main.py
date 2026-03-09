@@ -1,40 +1,47 @@
+import logging
 import sys
 import os
 
-# Ensure the backend package root is on sys.path so relative imports work
-# regardless of how the script is launched (e.g. from Flutter subprocess).
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from services import db, embedder
 from routes import tasks, documents, chat, calendar, auth, settings
 
+logger = logging.getLogger("justcal")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Startup ──
     db.init_db()
     embedder.start_loading()
     print("[BACKEND] Database initialised, embedder loading in background")
     yield
-    # ── Shutdown ──
     print("[BACKEND] Shutting down")
 
 
 app = FastAPI(title="JustCal Backend", version="0.1.0", lifespan=lifespan)
 
-# Allow Flutter dev & release to reach the API
+# Only allow requests from the local Flutter app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["http://127.0.0.1", "http://localhost"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "Authorization"],
 )
+
+
+@app.exception_handler(Exception)
+async def _global_exception_handler(request: Request, exc: Exception):
+    """Catch-all handler that prevents internal details from leaking."""
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"error": "Internal server error"})
 
 # Mount all routers
 app.include_router(tasks.router)

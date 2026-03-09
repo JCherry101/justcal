@@ -25,20 +25,14 @@ class _CalendarSyncPanelState extends State<CalendarSyncPanel> {
   Future<void> _checkStatus() async {
     try {
       final status = await ApiService.getGoogleAuthStatus();
-      if (mounted) setState(() => _googleConnected = status);
+      if (mounted) setState(() => _googleConnected = status['connected'] as bool? ?? false);
     } catch (_) {}
   }
 
   Future<void> _connectGoogle() async {
     try {
       await ApiService.startGoogleAuth();
-      for (var i = 0; i < 30; i++) {
-        await Future.delayed(const Duration(seconds: 1));
-        if (await ApiService.getGoogleAuthStatus()) {
-          if (mounted) setState(() => _googleConnected = true);
-          return;
-        }
-      }
+      await _checkStatus();
     } catch (_) {}
   }
 

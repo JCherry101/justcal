@@ -1,7 +1,9 @@
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from models import Task, Milestone
 from services import db
@@ -144,3 +146,91 @@ def get_all_milestones() -> list[Milestone]:
         Milestone(id=r["id"], task_id=r["task_id"], title=r["title"], due_date=r["due_date"], kind=r["kind"])
         for r in rows
     ]
+
+
+# ── Single-task CRUD ──
+
+
+class TaskUpdate(BaseModel):
+    title: str = Field(min_length=1, max_length=500)
+    deadline: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    priority: Literal["high", "medium", "low"]
+    description: str = Field(default="", max_length=5000)
+
+
+@router.put("/tasks/{task_id}")
+def update_task(task_id: str, body: TaskUpdate) -> dict:
+    conn = db.get_connection()
+    conn.execute(
+        "UPDATE tasks SET title=?, deadline=?, priority=?, description=? WHERE id=?",
+        (body.title, body.deadline, body.priority, body.description, task_id),
+    )
+    # Regenerate milestones for this task
+    conn.execute("DELETE FROM milestones WHERE task_id = ?", (task_id,))
+    task = Task(
+        id=task_id, title=body.title, deadline=body.deadline,
+        priority=body.priority, description=body.description, synced=False,
+    )
+    for ms in _generate_milestones(task):
+        conn.execute(
+            "INSERT INTO milestones (id,task_id,title,due_date,kind) VALUES (?,?,?,?,?)",
+            (ms.id, ms.task_id, ms.title, ms.due_date, ms.kind),
+        )
+    conn.commit()
+    return {"ok": True}
+
+
+@router.delete("/tasks/{task_id}")
+def delete_task(task_id: str) -> dict:
+    conn = db.get_connection()
+    # CASCADE deletes milestones automatically
+    conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    conn.commit()
+    return {"ok": True}
+
+
+# ── Milestone CRUD ──
+
+
+class MilestoneCreate(BaseModel):
+    task_id: str
+    title: str = Field(min_length=1, max_length=500)
+    due_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    kind: str = Field(default="custom", max_length=20)
+
+
+class MilestoneUpdate(BaseModel):
+    title: str = Field(min_length=1, max_length=500)
+    due_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    kind: str = Field(default="custom", max_length=20)
+
+
+@router.post("/milestones")
+def create_milestone(body: MilestoneCreate) -> Milestone:
+    ms_id = str(uuid.uuid4())
+    conn = db.get_connection()
+    conn.execute(
+        "INSERT INTO milestones (id,task_id,title,due_date,kind) VALUES (?,?,?,?,?)",
+        (ms_id, body.task_id, body.title, body.due_date, body.kind),
+    )
+    conn.commit()
+    return Milestone(id=ms_id, task_id=body.task_id, title=body.title, due_date=body.due_date, kind=body.kind)
+
+
+@router.put("/milestones/{milestone_id}")
+def update_milestone(milestone_id: str, body: MilestoneUpdate) -> dict:
+    conn = db.get_connection()
+    conn.execute(
+        "UPDATE milestones SET title=?, due_date=?, kind=? WHERE id=?",
+        (body.title, body.due_date, body.kind, milestone_id),
+    )
+    conn.commit()
+    return {"ok": True}
+
+
+@router.delete("/milestones/{milestone_id}")
+def delete_milestone(milestone_id: str) -> dict:
+    conn = db.get_connection()
+    conn.execute("DELETE FROM milestones WHERE id = ?", (milestone_id,))
+    conn.commit()
+    return {"ok": True}

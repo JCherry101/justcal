@@ -10,9 +10,8 @@ class SidebarItem {
 }
 
 const _items = [
-  SidebarItem(Icons.dashboard_rounded, 'Dashboard', 'dashboard'),
-  SidebarItem(Icons.checklist_rounded, 'My Tasks', 'tasks'),
   SidebarItem(Icons.calendar_month_rounded, 'Calendar', 'calendar'),
+  SidebarItem(Icons.checklist_rounded, 'My Tasks', 'tasks'),
   SidebarItem(Icons.chat_bubble_outline_rounded, 'Assistant', 'chat'),
   SidebarItem(Icons.description_outlined, 'Documents', 'documents'),
   SidebarItem(Icons.settings_outlined, 'Settings', 'settings'),

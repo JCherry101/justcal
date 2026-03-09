@@ -34,10 +34,9 @@ def store_document_with_embeddings(
             "INSERT INTO chunks (id, document_id, content, chunk_index) VALUES (?,?,?,?)",
             (chunk_id, doc_id, chunk_content, i),
         )
-        rowid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
         conn.execute(
-            "INSERT INTO embeddings (chunk_rowid, embedding) VALUES (?,?)",
-            (rowid, embedder.vec_to_bytes(vec)),
+            "INSERT INTO embeddings (chunk_id, embedding) VALUES (?,?)",
+            (chunk_id, embedder.vec_to_bytes(vec)),
         )
     conn.commit()
 
@@ -49,7 +48,7 @@ def retrieve_relevant_chunks(query: str, top_k: int = 5) -> list[tuple[str, floa
 
     rows = conn.execute(
         "SELECT c.content, e.embedding "
-        "FROM embeddings e JOIN chunks c ON c.rowid = e.chunk_rowid"
+        "FROM embeddings e JOIN chunks c ON c.id = e.chunk_id"
     ).fetchall()
 
     if not rows:

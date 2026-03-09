@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
 import 'widgets/sidebar.dart';
-import 'screens/dashboard_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/documents_screen.dart';
@@ -35,7 +34,7 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  String _activeView = 'dashboard';
+  String _activeView = 'calendar';
   final _backend = BackendProcess();
   bool _backendReady = false;
   String? _backendError;
@@ -84,10 +83,10 @@ class _AppShellState extends State<AppShell> {
     }
 
     switch (_activeView) {
-      case 'tasks':
-        return const DashboardScreen(showTasksOnly: true);
       case 'calendar':
         return const CalendarScreen();
+      case 'tasks':
+        return const CalendarScreen(); // tasks visible in calendar
       case 'chat':
         return const ChatScreen();
       case 'documents':
@@ -95,7 +94,7 @@ class _AppShellState extends State<AppShell> {
       case 'settings':
         return const SettingsScreen();
       default:
-        return const DashboardScreen();
+        return const CalendarScreen();
     }
   }
 

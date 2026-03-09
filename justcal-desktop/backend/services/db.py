@@ -85,8 +85,22 @@ def init_db() -> None:
         );
 
         CREATE TABLE IF NOT EXISTS embeddings (
-            chunk_rowid INTEGER PRIMARY KEY,
-            embedding   BLOB NOT NULL
+            chunk_id TEXT PRIMARY KEY,
+            embedding BLOB NOT NULL,
+            FOREIGN KEY (chunk_id) REFERENCES chunks(id) ON DELETE CASCADE
         );
     """)
+
+    # Migrate old schema: if embeddings table has 'chunk_rowid' column, recreate it
+    cols = [r["name"] for r in conn.execute("PRAGMA table_info(embeddings)").fetchall()]
+    if "chunk_rowid" in cols:
+        conn.executescript("""
+            DROP TABLE IF EXISTS embeddings;
+            CREATE TABLE embeddings (
+                chunk_id TEXT PRIMARY KEY,
+                embedding BLOB NOT NULL,
+                FOREIGN KEY (chunk_id) REFERENCES chunks(id) ON DELETE CASCADE
+            );
+        """)
+
     conn.commit()

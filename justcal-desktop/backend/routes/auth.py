@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from services.google_auth import (
     get_google_auth_status,
@@ -11,13 +11,16 @@ router = APIRouter()
 
 @router.post("/auth/google/start")
 async def google_auth_start() -> dict:
-    await start_google_auth()
-    return {"ok": True}
+    try:
+        result = await start_google_auth()
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return result
 
 
 @router.get("/auth/google/status")
 def google_auth_status() -> dict:
-    return {"connected": get_google_auth_status()}
+    return get_google_auth_status()
 
 
 @router.post("/auth/google/revoke")
